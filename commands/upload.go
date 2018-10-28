@@ -4,12 +4,13 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/go-yaml/yaml"
 	"github.com/p47t/md2cfl/bf2confluence"
+	"github.com/p47t/md2cfl/confluence"
 	"github.com/p47t/md2cfl/parser/pageparser"
 	"github.com/russross/blackfriday/v2"
-	"github.com/seppestas/go-confluence"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"path"
 )
 
 type uploadCmd struct {
@@ -25,35 +26,35 @@ func newUploadCmd() *cobra.Command {
 		Short: "Upload file to Confluence page",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var err error
+			// Parse markdown
 			var pmd parsedMarkdown
-			if err = pmd.parse(args[0]); err != nil {
+			err := pmd.parse(args[0])
+			if err != nil {
 				return err
 			}
 
-			renderer := &bf2confluence.Renderer{}
-			extensions := blackfriday.CommonExtensions
-			bf := blackfriday.New(
-				blackfriday.WithRenderer(renderer),
-				blackfriday.WithExtensions(extensions))
-			ast := bf.Parse(pmd.content)
+			// Connect to Wiki
+			baseUrl := pmd.ConfluenceBase(rootCmd.baseUrl)
+			log.Println("Confluence Base:", baseUrl)
+			wiki, err := confluence.NewWiki(baseUrl, confluence.BasicAuth(rootCmd.userName, rootCmd.password))
+			if err != nil {
+				return err
+			}
 
+			// Upload page
+			pageId := pmd.ConfluencePage(c.pageId)
+			err = uploadPage(wiki, pageId, pmd.render(), pmd.Title(c.title))
+			if err != nil {
+				return err
+			}
+
+			// Upload images
+			mdPath := path.Dir(args[0])
 			var images []string
-			ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-				switch node.Type {
-				case blackfriday.Image:
-					if entering {
-						images = append(images, string(node.LinkData.Destination))
-					}
-				}
-				return blackfriday.GoToNext
-			})
-
-			return uploadPage(
-				pmd.ConfluenceBase(rootCmd.baseUrl),
-				pmd.ConfluencePage(c.pageId),
-				renderer.Render(ast),
-				pmd.Title(c.title))
+			for _, im := range pmd.images() {
+				images = append(images, path.Join(mdPath, im))
+			}
+			return uploadImages(wiki, pageId, images)
 		},
 	}
 	c.Command.Flags().StringVarP(&c.pageId, "page", "P", "", "page ID")
@@ -66,7 +67,8 @@ type parsedMarkdown struct {
 	frontMatter       map[string]interface{}
 
 	// Everything after Front Matter
-	content []byte
+	content    []byte
+	contentAst *blackfriday.Node
 }
 
 func (pf *parsedMarkdown) Title(def string) string {
@@ -101,8 +103,7 @@ func (pf *parsedMarkdown) parse(filename string) error {
 	}
 	defer f.Close()
 
-	var psr pageparser.Result
-	psr, err = pageparser.Parse(f)
+	psr, err := pageparser.Parse(f)
 	if err != nil {
 		return err
 	}
@@ -122,40 +123,47 @@ func (pf *parsedMarkdown) parse(filename string) error {
 		return true
 	})
 
+	extensions := blackfriday.CommonExtensions
+	bf := blackfriday.New(blackfriday.WithExtensions(extensions))
+	pf.contentAst = bf.Parse(pf.content)
+
 	return nil
 }
 
-func uploadPage(baseUrl string, pageId string, content []byte, title string) error {
-	var err error
-	var wiki *confluence.Wiki
-	var page *confluence.Content
+func (pf *parsedMarkdown) render() []byte {
+	renderer := &bf2confluence.Renderer{}
+	return renderer.Render(pf.contentAst)
+}
 
-	log.Println("Confluence Base:", baseUrl)
+func (pf *parsedMarkdown) images() []string {
+	var images []string
+	pf.contentAst.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+		switch node.Type {
+		case blackfriday.Image:
+			if entering {
+				images = append(images, string(node.LinkData.Destination))
+			}
+		}
+		return blackfriday.GoToNext
+	})
+	return images
+}
+
+func uploadPage(wiki *confluence.Wiki, pageId string, content []byte, title string) error {
 	log.Println("Confluence Page:", pageId)
 
-	if wiki, err = confluence.NewWiki(baseUrl, confluence.BasicAuth(rootCmd.userName, rootCmd.password)); err != nil {
+	page, err := preparePage(wiki, pageId, content, title)
+	if err != nil {
 		return err
 	}
 
-	if page, err = preparePage(wiki, pageId, content, title); err != nil {
-		return err
-	}
-
-	if _, err := wiki.UpdateContent(page); err != nil {
-		return err
-	}
-
-	// TODO: upload attachments
-	// curl -v -S -u admin:admin -X POST -H "X-Atlassian-Token: no-check" -F "file=@myfile.txt" -F
-	//"comment=this is my file" "http://localhost:8080/confluence/rest/api/content/3604482/child/attachment"
-
-	return nil
+	_, err = wiki.UpdateContent(page)
+	return err
 }
 
 func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title string) (*confluence.Content, error) {
-	var err error
-	var page *confluence.Content
-	if page, err = wiki.GetContent(pageId, []string{"body", "version"}); err != nil {
+	page, err := wiki.GetContent(pageId, []string{"body", "version"})
+	if err != nil {
 		return nil, err
 	}
 
@@ -167,4 +175,12 @@ func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title str
 	page.Version.Number += 1
 
 	return page, nil
+}
+
+func uploadImages(wiki *confluence.Wiki, pageId string, images []string) error {
+	page, err := wiki.GetContent(pageId, []string{"body", "version"})
+	if err != nil {
+		return err
+	}
+	return wiki.AddAttachments(page, images)
 }

@@ -71,6 +71,7 @@ func TokenAuth(tokenkey string) AuthMethod {
 
 func (w *Wiki) sendRequest(req *http.Request) ([]byte, error) {
 	req.Header.Add("Accept", "application/json, */*")
+	req.Header.Add("X-Atlassian-Token", "no-check")
 	w.authMethod.auth(req)
 
 	resp, err := w.client.Do(req)

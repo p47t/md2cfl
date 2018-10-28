@@ -1,9 +1,13 @@
 package confluence
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -95,4 +99,57 @@ func (w *Wiki) UpdateContent(content *Content) (*Content, error) {
 	}
 
 	return &newContent, nil
+}
+
+// https://docs.atlassian.com/atlassian-confluence/REST/6.5.2/#content/{id}/child/attachment
+func (w *Wiki) AddAttachments(content *Content, files []string) error {
+	contentEndPoint, err := w.contentEndpoint(content.Id)
+	if err != nil {
+		return err
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for _, path := range files {
+		err = func() error {
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			fi, err := file.Stat()
+			if err != nil {
+				return err
+			}
+
+			part, err := writer.CreateFormFile("file", fi.Name())
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(part, file)
+			return err
+		}()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST",
+		contentEndPoint.String()+"/child/attachment", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	_, err = w.sendRequest(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
