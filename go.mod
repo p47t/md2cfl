@@ -1,6 +1,8 @@
 module github.com/p47t/md2cfl
 
 require (
+	github.com/BurntSushi/toml v0.3.1
+	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect

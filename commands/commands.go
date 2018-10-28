@@ -20,7 +20,7 @@ func Execute() error {
 	rootCmd.PersistentFlags().StringVarP(&rootCmd.baseUrl, "base", "b", "", "Confluence base URL")
 	rootCmd.PersistentFlags().StringVarP(&rootCmd.userName, "user", "u", "", "Confluence user name")
 	rootCmd.PersistentFlags().StringVarP(&rootCmd.password, "password", "p", "", "Confluence password")
-	rootCmd.AddCommand(cmdUpload)
+	rootCmd.AddCommand(newUploadCmd())
 
 	return rootCmd.Execute()
 }
