@@ -8,7 +8,9 @@ import (
 	"github.com/p47t/md2cfl/parser/pageparser"
 	"github.com/russross/blackfriday/v2"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"path"
 )
@@ -17,6 +19,7 @@ type uploadCmd struct {
 	*cobra.Command
 	pageId string
 	title  string
+	output string
 }
 
 func newUploadCmd() *cobra.Command {
@@ -43,15 +46,22 @@ func newUploadCmd() *cobra.Command {
 
 			// Upload page
 			pageId := pmd.ConfluencePage(c.pageId)
-			err = uploadPage(wiki, pageId, pmd.render(), pmd.Title(c.title))
+			wikiText := pmd.render()
+			err = uploadPage(wiki, pageId, wikiText, pmd.Title(c.title))
 			if err != nil {
 				return err
+			}
+			if c.output != "" {
+				ioutil.WriteFile(c.output, wikiText, 0644)
 			}
 
 			// Upload images
 			mdPath := path.Dir(args[0])
 			var images []string
 			for _, im := range pmd.images() {
+				if _, err := url.ParseRequestURI(im); err == nil {
+					continue // ignore all remote or absolute path
+				}
 				images = append(images, path.Join(mdPath, im))
 			}
 			_, errs := wiki.AddUpdateAttachments(pageId, images)
@@ -64,6 +74,8 @@ func newUploadCmd() *cobra.Command {
 	}
 	c.Command.Flags().StringVarP(&c.pageId, "page", "P", "", "page ID")
 	c.Command.Flags().StringVarP(&c.title, "title", "t", "Page", "page title")
+	c.Command.Flags().StringVarP(&c.output, "output", "o", "", "output converted wiki to file")
+
 	return c.Command
 }
 
