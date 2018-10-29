@@ -54,7 +54,12 @@ func newUploadCmd() *cobra.Command {
 			for _, im := range pmd.images() {
 				images = append(images, path.Join(mdPath, im))
 			}
-			return uploadImages(wiki, pageId, images)
+			_, errs := wiki.AddUpdateAttachments(pageId, images)
+			for _, err := range errs {
+				log.Println(err) // log but don't report error to caller
+			}
+
+			return nil
 		},
 	}
 	c.Command.Flags().StringVarP(&c.pageId, "page", "P", "", "page ID")
@@ -175,12 +180,4 @@ func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title str
 	page.Version.Number += 1
 
 	return page, nil
-}
-
-func uploadImages(wiki *confluence.Wiki, pageId string, images []string) error {
-	page, err := wiki.GetContent(pageId, []string{"body", "version"})
-	if err != nil {
-		return err
-	}
-	return wiki.AddAttachments(page, images)
 }
