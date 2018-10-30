@@ -75,6 +75,7 @@ func newUploadCmd() *cobra.Command {
 				log.Println(err) // log but don't report error to caller
 			}
 
+			log.Println("File is uploaded successfully.")
 			return nil
 		},
 	}
