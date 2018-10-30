@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 )
 
 type uploadCmd struct {
@@ -140,6 +141,10 @@ func (pf *parsedMarkdown) ConfluencePage(def string) string {
 	return def
 }
 
+var (
+	reShortcode = regexp.MustCompile(`{{%\s*/?(\S+)\s*%}}`)
+)
+
 func (pf *parsedMarkdown) parse(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -166,6 +171,9 @@ func (pf *parsedMarkdown) parse(filename string) error {
 		}
 		return true
 	})
+
+	// Remove Hugo shortcode "{{% note %}} ... {{% /note %}}"
+	pf.content = reShortcode.ReplaceAll(pf.content, []byte(``))
 
 	extensions := blackfriday.CommonExtensions
 	bf := blackfriday.New(blackfriday.WithExtensions(extensions))

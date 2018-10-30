@@ -51,3 +51,11 @@ int main()
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg)
 ![](test.png)
 ![](/a/b/c/test.png)
+
+{{% note %}}
+note something
+{{% /note %}}
+
+{{% warning %}}
+danger!
+{{% /warning %}}
