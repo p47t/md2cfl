@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/p47t/md2cfl/commands"
 	"log"
+
+	"github.com/p47t/md2cfl/commands"
 )
 
 func main() {

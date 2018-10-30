@@ -2,6 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/url"
+	"os"
+	"path"
+	"regexp"
+	"syscall"
+
 	"github.com/BurntSushi/toml"
 	"github.com/go-yaml/yaml"
 	"github.com/p47t/md2cfl/bf2confluence"
@@ -10,12 +18,7 @@ import (
 	"github.com/russross/blackfriday/v2"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
-	"io/ioutil"
-	"log"
-	"net/url"
-	"os"
-	"path"
-	"regexp"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type uploadCmd struct {
@@ -92,12 +95,21 @@ func getConfluenceAuth(baseUrl string) (confluence.AuthMethod, error) {
 	userName, password := rootCmd.userName, rootCmd.password
 	if userName == "" {
 		return nil, fmt.Errorf("must specify user name")
-	} else if password == "" {
+	}
+	if password == "" && rootCmd.useSavedCredential {
 		// Load credential from system key ring
-		if password, err = keyring.Get(baseUrl, userName); err != nil {
+		password, _ = keyring.Get(baseUrl, userName)
+	}
+	if password == "" {
+		fmt.Printf("Password for %v at %v: ", userName, baseUrl)
+		if bytePassword, err := terminal.ReadPassword(int(syscall.Stdin)); err != nil {
 			return nil, err
+		} else {
+			password = string(bytePassword)
+			fmt.Println()
 		}
-	} else if rootCmd.saveCredential {
+	}
+	if rootCmd.saveCredential {
 		// Save credential to system key ring
 		if err = keyring.Set(baseUrl, userName, password); err != nil {
 			log.Fatal(err)

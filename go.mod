@@ -13,6 +13,8 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/zalando/go-keyring v0.0.0-20180221093347-6d81c293b3fb
+	golang.org/x/crypto v0.0.0-20181030022821-bc7917b19d8f
+	golang.org/x/sys v0.0.0-20181029174526-d69651ed3497 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 
