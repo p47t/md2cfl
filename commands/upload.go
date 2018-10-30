@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/go-yaml/yaml"
 	"github.com/p47t/md2cfl/bf2confluence"
@@ -8,6 +9,7 @@ import (
 	"github.com/p47t/md2cfl/parser/pageparser"
 	"github.com/russross/blackfriday/v2"
 	"github.com/spf13/cobra"
+	"github.com/zalando/go-keyring"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -39,7 +41,11 @@ func newUploadCmd() *cobra.Command {
 			// Connect to Wiki
 			baseUrl := pmd.ConfluenceBase(rootCmd.baseUrl)
 			log.Println("Confluence Base:", baseUrl)
-			wiki, err := confluence.NewWiki(baseUrl, confluence.BasicAuth(rootCmd.userName, rootCmd.password))
+			auth, err := getConfluenceAuth(baseUrl)
+			if err != nil {
+				return err
+			}
+			wiki, err := confluence.NewWiki(baseUrl, auth)
 			if err != nil {
 				return err
 			}
@@ -77,6 +83,26 @@ func newUploadCmd() *cobra.Command {
 	c.Command.Flags().StringVarP(&c.output, "output", "o", "", "output converted wiki to file")
 
 	return c.Command
+}
+
+func getConfluenceAuth(baseUrl string) (confluence.AuthMethod, error) {
+	var err error
+	userName, password := rootCmd.userName, rootCmd.password
+	if userName == "" {
+		return nil, fmt.Errorf("must specify user name")
+	} else if password == "" {
+		// Load credential from system key ring
+		if password, err = keyring.Get(baseUrl, userName); err != nil {
+			return nil, err
+		}
+	} else if rootCmd.saveCredential {
+		// Save credential to system key ring
+		if err = keyring.Set(baseUrl, userName, password); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return confluence.BasicAuth(userName, password), nil
 }
 
 type parsedMarkdown struct {
