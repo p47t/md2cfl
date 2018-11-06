@@ -65,16 +65,16 @@ func newUploadCmd() *cobra.Command {
 				ioutil.WriteFile(c.output, wikiText, 0644)
 			}
 
-			// Upload images
+			// Upload attachments
 			mdPath := path.Dir(args[0])
-			var images []string
-			for _, im := range pmd.images() {
-				if _, err := url.ParseRequestURI(im); err == nil {
+			var attachments []string
+			for _, dest := range append(pmd.images(), pmd.links()...) {
+				if _, err := url.ParseRequestURI(dest); err == nil {
 					continue // ignore all remote or absolute path
 				}
-				images = append(images, path.Join(mdPath, im))
+				attachments = append(attachments, path.Join(mdPath, dest))
 			}
-			_, errs := wiki.AddUpdateAttachments(pageId, images)
+			_, errs := wiki.AddUpdateAttachments(pageId, attachments)
 			for _, err := range errs {
 				log.Println(err) // log but don't report error to caller
 			}
@@ -200,17 +200,22 @@ func (pf *parsedMarkdown) render() []byte {
 }
 
 func (pf *parsedMarkdown) images() []string {
-	var images []string
+	return pf.destinations(blackfriday.Image)
+}
+
+func (pf *parsedMarkdown) links() []string {
+	return pf.destinations(blackfriday.Link)
+}
+
+func (pf *parsedMarkdown) destinations(t blackfriday.NodeType) []string {
+	var destinations []string
 	pf.contentAst.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-		switch node.Type {
-		case blackfriday.Image:
-			if entering {
-				images = append(images, string(node.LinkData.Destination))
-			}
+		if node.Type == t && entering {
+			destinations = append(destinations, string(node.LinkData.Destination))
 		}
 		return blackfriday.GoToNext
 	})
-	return images
+	return destinations
 }
 
 func uploadPage(wiki *confluence.Wiki, pageId string, content []byte, title string) error {
