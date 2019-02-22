@@ -195,7 +195,7 @@ func (pf *parsedMarkdown) parse(filename string) error {
 }
 
 func (pf *parsedMarkdown) render() []byte {
-	renderer := &bf2confluence.Renderer{}
+	renderer := &bf2confluence.Renderer{Flags: bf2confluence.InformationMacros | bf2confluence.RawConfluenceWiki}
 	return renderer.Render(pf.contentAst)
 }
 

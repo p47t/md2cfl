@@ -26,6 +26,7 @@ const (
 
 	// InformationMacros allow using info, tip, note, and warning macros
 	InformationMacros Flag = 1 << iota
+	RawConfluenceWiki
 )
 
 var (
@@ -140,8 +141,10 @@ func (r *Renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.Walk
 	case bf.CodeBlock:
 		r.out(w, []byte("{"))
 		if len(node.Info) > 0 {
-			if r.Flags&InformationMacros != 0 {
-				language := string(node.Info)
+			language := string(node.Info)
+			if language == "confluence" && r.Flags&RawConfluenceWiki != 0 {
+				w.Write(node.Literal)
+			} else if r.Flags&InformationMacros != 0 {
 				switch language {
 				case "info":
 					r.out(w, infoTag)
@@ -151,6 +154,7 @@ func (r *Renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.Walk
 					r.out(w, noteTag)
 				case "warning":
 					r.out(w, warningTag)
+				case "confluence":
 				default:
 					r.out(w, []byte(codeTag))
 					r.out(w, []byte(":"))
