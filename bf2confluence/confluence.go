@@ -139,12 +139,15 @@ func (r *Renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.Walk
 			r.cr(w)
 		}
 	case bf.CodeBlock:
+		if len(node.Info) > 0 && string(node.Info) == "confluence" && r.Flags&RawConfluenceWiki != 0 {
+			w.Write(node.Literal)
+			break
+		}
+
 		r.out(w, []byte("{"))
 		if len(node.Info) > 0 {
 			language := string(node.Info)
-			if language == "confluence" && r.Flags&RawConfluenceWiki != 0 {
-				w.Write(node.Literal)
-			} else if r.Flags&InformationMacros != 0 {
+			if r.Flags&InformationMacros != 0 {
 				switch language {
 				case "info":
 					r.out(w, infoTag)
