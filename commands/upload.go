@@ -33,6 +33,16 @@ func newUploadCmd() *cobra.Command {
 	c.Command = &cobra.Command{
 		Use:   "upload [file]",
 		Short: "Upload file to Confluence page",
+		Long: `Upload converted markdown file to specified Confluence page.
+
+Note that you may put Confluence-related parameters in front matter, e.g.:
+
+---
+confluence:
+	base: "http://your.confluence.server"
+	page: "583910399"
+---
+`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Parse markdown
