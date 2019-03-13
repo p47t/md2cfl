@@ -9,6 +9,9 @@ builds:
     - windows
     - darwin
     - linux
+  - ignore:
+      - goos: darwin
+        goarch: 386
 archive:
   replacements:
     darwin: Darwin
