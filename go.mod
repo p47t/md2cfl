@@ -4,6 +4,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/danieljoos/wincred v1.0.1 // indirect
 	github.com/go-yaml/yaml v2.1.0+incompatible
+	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.8.0
