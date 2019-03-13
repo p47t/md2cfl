@@ -14,10 +14,10 @@ Usage:
   md2cfl upload [file] [flags]
 
 Flags:
-  -h, --help            help for upload
-  -o, --output string   output converted wiki to file
-  -P, --page string     page ID
-  -t, --title string    page title (default "Page")
+  -d, --dryrun         don't upload but print wiki text
+  -h, --help           help for upload
+  -P, --page string    page ID
+  -t, --title string   page title (default "Page")
 
 Global Flags:
   -b, --base string            Confluence base URL
