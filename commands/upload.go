@@ -67,7 +67,7 @@ confluence:
 			wikiText := pmd.render()
 
 			if c.dryrun {
-				fmt.Print(wikiText)
+				fmt.Print(string(wikiText))
 				return nil
 			}
 
