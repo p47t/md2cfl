@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -25,7 +24,7 @@ type uploadCmd struct {
 	*cobra.Command
 	pageId string
 	title  string
-	output string
+	dryrun bool
 }
 
 func newUploadCmd() *cobra.Command {
@@ -64,15 +63,18 @@ confluence:
 				return err
 			}
 
-			// Upload page
 			pageId := pmd.ConfluencePage(c.pageId)
 			wikiText := pmd.render()
+
+			if c.dryrun {
+				fmt.Print(wikiText)
+				return nil
+			}
+
+			// Upload page
 			err = uploadPage(wiki, pageId, wikiText, pmd.Title(c.title))
 			if err != nil {
 				return err
-			}
-			if c.output != "" {
-				ioutil.WriteFile(c.output, wikiText, 0644)
 			}
 
 			// Upload attachments
@@ -95,7 +97,7 @@ confluence:
 	}
 	c.Command.Flags().StringVarP(&c.pageId, "page", "P", "", "page ID")
 	c.Command.Flags().StringVarP(&c.title, "title", "t", "Page", "page title")
-	c.Command.Flags().StringVarP(&c.output, "output", "o", "", "output converted wiki to file")
+	c.Command.Flags().BoolVarP(&c.dryrun, "dryrun", "d", false, "don't upload but print wiki text")
 
 	return c.Command
 }
