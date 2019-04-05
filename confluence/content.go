@@ -21,6 +21,9 @@ type Content struct {
 	Version struct {
 		Number int `json:"number"`
 	} `json:"version"`
+	Links struct {
+		WebUI string `json:"webui"`
+	} `json:"_links"`
 }
 
 func (w *Wiki) contentEndpoint(contentID string) (*url.URL, error) {

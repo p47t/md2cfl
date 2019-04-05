@@ -42,7 +42,7 @@ confluence:
 	page: "583910399"
 ---
 `,
-		Args:  cobra.MinimumNArgs(1),
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Parse markdown
 			var pmd parsedMarkdown
@@ -72,7 +72,7 @@ confluence:
 			}
 
 			// Upload page
-			err = uploadPage(wiki, pageId, wikiText, pmd.Title(c.title))
+			webUI, err := uploadPage(wiki, pageId, wikiText, pmd.Title(c.title))
 			if err != nil {
 				return err
 			}
@@ -92,6 +92,9 @@ confluence:
 			}
 
 			log.Println("File is uploaded successfully.")
+			if webUI != "" {
+				log.Println("Browse", baseUrl+webUI, "for the result.")
+			}
 			return nil
 		},
 	}
@@ -230,16 +233,16 @@ func (pf *parsedMarkdown) destinations(t blackfriday.NodeType) []string {
 	return destinations
 }
 
-func uploadPage(wiki *confluence.Wiki, pageId string, content []byte, title string) error {
+func uploadPage(wiki *confluence.Wiki, pageId string, content []byte, title string) (string, error) {
 	log.Println("Confluence Page:", pageId)
 
 	page, err := preparePage(wiki, pageId, content, title)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	_, err = wiki.UpdateContent(page)
-	return err
+	return page.Links.WebUI, err
 }
 
 func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title string) (*confluence.Content, error) {
