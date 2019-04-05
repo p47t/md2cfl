@@ -82,7 +82,7 @@ func (w *Wiki) sendRequest(req *http.Request) ([]byte, error) {
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusCreated, http.StatusPartialContent:
 		res, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, err
 		}
