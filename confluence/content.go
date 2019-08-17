@@ -30,6 +30,10 @@ func (w *Wiki) contentEndpoint(contentID string) (*url.URL, error) {
 	return url.ParseRequestURI(w.endPoint.String() + "/content/" + contentID)
 }
 
+func (w *Wiki) labelEndpoint(contentID string) (*url.URL, error) {
+	return url.ParseRequestURI(w.endPoint.String() + "/content/" + contentID + "/label")
+}
+
 func (w *Wiki) DeleteContent(contentID string) error {
 	contentEndPoint, err := w.contentEndpoint(contentID)
 	if err != nil {
@@ -49,15 +53,15 @@ func (w *Wiki) DeleteContent(contentID string) error {
 }
 
 func (w *Wiki) GetContent(contentID string, expand []string) (*Content, error) {
-	contentEndPoint, err := w.contentEndpoint(contentID)
+	contentEndpoint, err := w.contentEndpoint(contentID)
 	if err != nil {
 		return nil, err
 	}
 	data := url.Values{}
 	data.Set("expand", strings.Join(expand, ","))
-	contentEndPoint.RawQuery = data.Encode()
+	contentEndpoint.RawQuery = data.Encode()
 
-	req, err := http.NewRequest("GET", contentEndPoint.String(), nil)
+	req, err := http.NewRequest("GET", contentEndpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -98,4 +102,30 @@ func (w *Wiki) UpdateContent(content *Content) (*Content, error) {
 	}
 
 	return &newContent, nil
+}
+
+func (w *Wiki) AddLabels(contentID string, labels []string) error {
+	type Label struct {
+		Prefix string `json:"prefix"`
+		Name   string `json:"name"`
+	}
+	var labelsContent []Label
+	for _, l := range labels {
+		labelsContent = append(labelsContent, Label{"global", l})
+	}
+
+	jsonbody, err := json.Marshal(labelsContent)
+	if err != nil {
+		return err
+	}
+
+	labelEndpoint, err := w.labelEndpoint(contentID)
+	req, err := http.NewRequest("POST", labelEndpoint.String(), strings.NewReader(string(jsonbody)))
+	req.Header.Add("Content-Type", "application/json")
+
+	_, err = w.sendRequest(req)
+	if err != nil {
+		return err
+	}
+	return nil
 }

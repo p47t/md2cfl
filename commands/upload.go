@@ -91,6 +91,15 @@ confluence:
 				log.Println(err) // log but don't report error to caller
 			}
 
+			// Update labels
+			if labels := pmd.Tags(); len(labels) > 0 {
+				log.Println("Updating labels...")
+				err = wiki.AddLabels(pageId, labels)
+				if err != nil {
+					return err
+				}
+			}
+
 			log.Println("File is uploaded successfully.")
 			if webUI != "" {
 				log.Println("Browse", baseUrl+webUI, "for the result.")
@@ -166,6 +175,16 @@ func (pf *parsedMarkdown) ConfluencePage(def string) string {
 		}
 	}
 	return def
+}
+
+func (pf *parsedMarkdown) Tags() []string {
+	var ret []string
+	if tags, ok := pf.frontMatter["tags"]; ok {
+		for _, t := range tags.([]interface{}) {
+			ret = append(ret, t.(string))
+		}
+	}
+	return ret
 }
 
 var (
