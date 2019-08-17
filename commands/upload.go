@@ -186,6 +186,7 @@ func (pf *parsedMarkdown) parse(filename string) error {
 		return err
 	}
 
+	var frontMatterError = fmt.Errorf("no front matter is provided")
 	psr.Iterator().PeekWalk(func(item pageparser.Item) bool {
 		if pf.frontMatterSource != nil {
 			pf.content = psr.Input()[item.Pos:]
@@ -193,13 +194,22 @@ func (pf *parsedMarkdown) parse(filename string) error {
 		} else if item.IsFrontMatter() {
 			pf.frontMatterSource = item.Val
 
-			// TODO: support more formats?
+			// Try YAML
 			if err := yaml.Unmarshal(pf.frontMatterSource, &pf.frontMatter); err != nil {
-				toml.Unmarshal(pf.frontMatterSource, &pf.frontMatter)
+				// Try TOML
+				if err := toml.Unmarshal(pf.frontMatterSource, &pf.frontMatter); err != nil {
+					// TODO: support more format?
+					frontMatterError = fmt.Errorf("invalid front matter")
+					return false
+				}
 			}
+			frontMatterError = nil
 		}
 		return true
 	})
+	if frontMatterError != nil {
+		return frontMatterError
+	}
 
 	// Remove Hugo shortcode "{{% note %}} ... {{% /note %}}"
 	pf.content = reShortcode.ReplaceAll(pf.content, []byte(``))
