@@ -84,8 +84,11 @@ func (w *Wiki) UpdateContent(content *Content) (*Content, error) {
 
 	contentEndPoint, err := w.contentEndpoint(content.Id)
 	req, err := http.NewRequest("PUT", contentEndPoint.String(), strings.NewReader(string(jsonbody)))
-	req.Header.Add("Content-Type", "application/json")
+	if err != nil {
+		return nil, err
+	}
 
+	req.Header.Add("Content-Type", "application/json")
 	res, err := w.sendRequest(req)
 	if err != nil {
 		return nil, err
