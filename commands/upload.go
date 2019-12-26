@@ -93,6 +93,15 @@ confluence:
 				log.Println(err) // log but don't report error to caller
 			}
 
+			// Update labels
+			if labels := pmd.Tags(); len(labels) > 0 {
+				log.Println("Updating labels...")
+				err = wiki.AddLabels(pageId, labels)
+				if err != nil {
+					return err
+				}
+			}
+
 			log.Println("File is uploaded successfully.")
 			if webUI != "" {
 				log.Println("Browse", baseUrl+webUI, "for the result.")
@@ -170,6 +179,16 @@ func (pf *parsedMarkdown) ConfluencePage(def string) string {
 	return def
 }
 
+func (pf *parsedMarkdown) Tags() []string {
+	var ret []string
+	if tags, ok := pf.frontMatter["tags"]; ok {
+		for _, t := range tags.([]interface{}) {
+			ret = append(ret, t.(string))
+		}
+	}
+	return ret
+}
+
 var (
 	reShortcode = regexp.MustCompile(`{{%\s*/?(\S+)\s*%}}`)
 )
@@ -186,6 +205,7 @@ func (pf *parsedMarkdown) parse(filename string) error {
 		return err
 	}
 
+	var frontMatterError = fmt.Errorf("no front matter is provided")
 	psr.Iterator().PeekWalk(func(item pageparser.Item) bool {
 		if pf.frontMatterSource != nil {
 			pf.content = psr.Input()[item.Pos:]
@@ -193,13 +213,22 @@ func (pf *parsedMarkdown) parse(filename string) error {
 		} else if item.IsFrontMatter() {
 			pf.frontMatterSource = item.Val
 
-			// TODO: support more formats?
+			// Try YAML
 			if err := yaml.Unmarshal(pf.frontMatterSource, &pf.frontMatter); err != nil {
-				toml.Unmarshal(pf.frontMatterSource, &pf.frontMatter)
+				// Try TOML
+				if err := toml.Unmarshal(pf.frontMatterSource, &pf.frontMatter); err != nil {
+					// TODO: support more format?
+					frontMatterError = fmt.Errorf("invalid front matter")
+					return false
+				}
 			}
+			frontMatterError = nil
 		}
 		return true
 	})
+	if frontMatterError != nil {
+		return frontMatterError
+	}
 
 	// Remove Hugo shortcode "{{% note %}} ... {{% /note %}}"
 	pf.content = reShortcode.ReplaceAll(pf.content, []byte(``))
