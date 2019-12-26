@@ -86,7 +86,9 @@ confluence:
 				}
 				attachments = append(attachments, path.Join(mdPath, dest))
 			}
-			_, errs := wiki.AddUpdateAttachments(pageId, attachments)
+			_, errs := wiki.AddUpdateAttachments(pageId, attachments, func(msg string) {
+				log.Println(msg)
+			})
 			for _, err := range errs {
 				log.Println(err) // log but don't report error to caller
 			}
