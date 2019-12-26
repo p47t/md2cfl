@@ -236,21 +236,23 @@ func (w *Wiki) AddAttachment(contentID, path string) (*Attachment, error) {
 	return &attachments.Results[0], nil
 }
 
-func (w *Wiki) AddUpdateAttachments(contentID string, files []string) ([]*Attachment, []error) {
+func (w *Wiki) AddUpdateAttachments(contentID string, files []string, progress func(msg string)) ([]*Attachment, []error) {
 	var results []*Attachment
 	var errors []error
 	for _, f := range files {
 		filename := path.Base(f)
 		attachment, err := w.GetAttachmentByFilename(contentID, filename)
 		if err != nil {
+			progress(fmt.Sprintf("Adding new attachment %s", filename))
 			attachment, err = w.AddAttachment(contentID, f)
 		} else {
-			attachment, err = w.UpdateAttachment(contentID, attachment.Id[3:], f, true)
+			progress(fmt.Sprintf("Updating attachment %s %s", filename, attachment.Id))
+			attachment, err = w.UpdateAttachment(contentID, attachment.Id, f, true)
 		}
 		if err == nil {
 			results = append(results, attachment)
 		} else {
-			errors = append(errors, err)
+			errors = append(errors, fmt.Errorf("failed to update attachment %s: %s", f, err.Error()))
 		}
 	}
 	return results, errors
