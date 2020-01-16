@@ -72,7 +72,7 @@ confluence:
 			}
 
 			// Upload page
-			webUI, err := uploadPage(wiki, pageId, wikiText, pmd.Title(c.title))
+			webUI, err := uploadPage(wiki, pageId, pmd.ConfluenceFormat("wiki"), wikiText, pmd.Title(c.title))
 			if err != nil {
 				return err
 			}
@@ -278,10 +278,10 @@ func (pf *parsedMarkdown) destinations(t blackfriday.NodeType) []string {
 	return destinations
 }
 
-func uploadPage(wiki *confluence.Wiki, pageId string, content []byte, title string) (string, error) {
+func uploadPage(wiki *confluence.Wiki, pageId, format string, content []byte, title string) (string, error) {
 	log.Println("Confluence Page:", pageId)
 
-	page, err := preparePage(wiki, pageId, content, title)
+	page, err := preparePage(wiki, pageId, format, content, title)
 	if err != nil {
 		return "", err
 	}
@@ -290,7 +290,7 @@ func uploadPage(wiki *confluence.Wiki, pageId string, content []byte, title stri
 	return page.Links.WebUI, err
 }
 
-func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title string) (*confluence.Content, error) {
+func preparePage(wiki *confluence.Wiki, pageId, format string, content []byte, title string) (*confluence.Content, error) {
 	page, err := wiki.GetContent(pageId, []string{"body", "version"})
 	if err != nil {
 		return nil, err
@@ -300,7 +300,14 @@ func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title str
 		page.Title = title
 	}
 	page.Body.Storage.Value = string(content)
-	page.Body.Storage.Representation = "storage"
+	switch format {
+	case "xml":
+		page.Body.Storage.Representation = "storage"
+	case "wiki":
+		fallthrough
+	default:
+		page.Body.Storage.Representation = "wiki"
+	}
 	page.Version.Number += 1
 
 	return page, nil
