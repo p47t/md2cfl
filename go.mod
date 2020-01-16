@@ -21,4 +21,6 @@ require (
 
 )
 
+replace github.com/russross/blackfriday/v2 => ./blackfriday
+
 go 1.13
