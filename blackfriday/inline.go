@@ -678,7 +678,7 @@ func leftBrace(p *Markdown, data []byte, offset int) (int, *Node) {
 		node.Name = string(data[offset+1 : end])
 	}
 	if param_offset >= 0 {
-		for _, param := range strings.FieldsFunc(string(data[param_offset:end]), func(r rune) bool { return r == '|' || r == '%' }) {
+		for _, param := range strings.FieldsFunc(string(data[param_offset:end-1]), func(r rune) bool { return r == '|' || r == '%' }) {
 			pair := strings.Split(param, "=")
 			if len(pair) >= 2 {
 				node.Parameters[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
@@ -686,7 +686,7 @@ func leftBrace(p *Markdown, data []byte, offset int) (int, *Node) {
 		}
 	}
 	node.Literal = data[offset:end]
-	return end + 1, node
+	return end, node
 }
 
 // '\\' backslash escape
