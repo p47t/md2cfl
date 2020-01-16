@@ -301,9 +301,9 @@ func (r *Renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.Walk
 			}
 		}
 	case bf.HTMLBlock, bf.HTMLSpan:
-		//r.out(w, []byte("{html}"))
-		//r.out(w, node.Literal)
-		//r.out(w, []byte("{html}"))
+		r.out(w, node.Literal)
+	case bf.Macro:
+		r.out(w, node.Literal)
 	default:
 		panic("Unknown node type " + node.Type.String())
 	}

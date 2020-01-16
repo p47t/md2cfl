@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -634,7 +635,7 @@ func leftAngle(p *Markdown, data []byte, offset int) (int, *Node) {
 		end = size
 	}
 	if end > 2 {
-		if altype != notAutolink {
+		if altype != notAutolink && p.extensions&Autolink != 0 {
 			var uLink bytes.Buffer
 			unescapeText(&uLink, data[1:end+1-2])
 			if uLink.Len() > 0 {
@@ -655,6 +656,37 @@ func leftAngle(p *Markdown, data []byte, offset int) (int, *Node) {
 	}
 
 	return end, nil
+}
+
+func leftBrace(p *Markdown, data []byte, offset int) (int, *Node) {
+	node := NewNode(Macro)
+	end := offset + 1
+	param_offset := -1
+	for end < len(data) {
+		c := data[end]
+		if c == '}' {
+			end++
+			break
+		} else if c == ':' {
+			node.Name = strings.TrimSpace(string(data[offset+1 : end]))
+			node.Parameters = make(map[string]string)
+			param_offset = end + 1
+		}
+		end++
+	}
+	if len(node.Name) == 0 {
+		node.Name = string(data[offset+1 : end])
+	}
+	if param_offset >= 0 {
+		for _, param := range strings.FieldsFunc(string(data[param_offset:end]), func(r rune) bool { return r == '|' || r == '%' }) {
+			pair := strings.Split(param, "=")
+			if len(pair) >= 2 {
+				node.Parameters[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
+			}
+		}
+	}
+	node.Literal = data[offset:end]
+	return end + 1, node
 }
 
 // '\\' backslash escape

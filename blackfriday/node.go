@@ -36,6 +36,7 @@ const (
 	TableHead
 	TableBody
 	TableRow
+	Macro
 )
 
 var nodeTypeNames = []string{
@@ -106,7 +107,12 @@ type TableCellData struct {
 type HeadingData struct {
 	Level        int    // This holds the heading level number
 	HeadingID    string // This might hold heading ID, if present
-	IsTitleblock bool   // Specifies whether it's a title block
+	IsTitleblock bool   // Specifies whether it'cd s a title block
+}
+
+type MacroData struct {
+	Name       string
+	Parameters map[string]string
 }
 
 // Node is a single element in the abstract syntax tree of the parsed document.
@@ -127,6 +133,7 @@ type Node struct {
 	CodeBlockData // Populated if Type is CodeBlock
 	LinkData      // Populated if Type is Link
 	TableCellData // Populated if Type is TableCell
+	MacroData     // Populated if Type is Macro
 
 	content []byte // Markdown content of the block nodes
 	open    bool   // Specifies an open block node that has not been finished to process yet

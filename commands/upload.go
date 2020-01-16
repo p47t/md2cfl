@@ -179,6 +179,15 @@ func (pf *parsedMarkdown) ConfluencePage(def string) string {
 	return def
 }
 
+func (pf *parsedMarkdown) ConfluenceFormat(def string) string {
+	if cfl, ok := pf.frontMatter["confluence"]; ok {
+		if format, ok := cfl.(map[interface{}]interface{})["format"]; ok {
+			return format.(string)
+		}
+	}
+	return def
+}
+
 func (pf *parsedMarkdown) Tags() []string {
 	var ret []string
 	if tags, ok := pf.frontMatter["tags"]; ok {
@@ -233,7 +242,7 @@ func (pf *parsedMarkdown) parse(filename string) error {
 	// Remove Hugo shortcode "{{% note %}} ... {{% /note %}}"
 	pf.content = reShortcode.ReplaceAll(pf.content, []byte(``))
 
-	extensions := blackfriday.CommonExtensions
+	extensions := blackfriday.CommonExtensions & ^blackfriday.Autolink
 	bf := blackfriday.New(blackfriday.WithExtensions(extensions))
 	pf.contentAst = bf.Parse(pf.content)
 
@@ -241,6 +250,11 @@ func (pf *parsedMarkdown) parse(filename string) error {
 }
 
 func (pf *parsedMarkdown) render() []byte {
+	if pf.ConfluenceFormat("wiki") == "xml" {
+		renderer := &bf2confluence.XmlRenderer{
+			Renderer: bf2confluence.Renderer{Flags: bf2confluence.InformationMacros | bf2confluence.RawConfluenceWiki}}
+		return renderer.Render(pf.contentAst)
+	}
 	renderer := &bf2confluence.Renderer{Flags: bf2confluence.InformationMacros | bf2confluence.RawConfluenceWiki}
 	return renderer.Render(pf.contentAst)
 }
@@ -286,7 +300,7 @@ func preparePage(wiki *confluence.Wiki, pageId string, content []byte, title str
 		page.Title = title
 	}
 	page.Body.Storage.Value = string(content)
-	page.Body.Storage.Representation = "wiki"
+	page.Body.Storage.Representation = "storage"
 	page.Version.Number += 1
 
 	return page, nil

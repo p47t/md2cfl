@@ -293,6 +293,7 @@ func New(opts ...Option) *Markdown {
 	p.inlineCallback['\n'] = lineBreak
 	p.inlineCallback['['] = link
 	p.inlineCallback['<'] = leftAngle
+	p.inlineCallback['{'] = leftBrace
 	p.inlineCallback['\\'] = escape
 	p.inlineCallback['&'] = entity
 	p.inlineCallback['!'] = maybeImage
