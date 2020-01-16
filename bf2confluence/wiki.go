@@ -3,6 +3,7 @@ package bf2confluence
 import (
 	"bytes"
 	"io"
+	"strings"
 
 	bf "github.com/russross/blackfriday/v2"
 )
@@ -303,7 +304,8 @@ func (r *Renderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.Walk
 	case bf.HTMLBlock, bf.HTMLSpan:
 		r.out(w, node.Literal)
 	case bf.Macro:
-		r.out(w, node.Literal)
+		s := strings.ReplaceAll(string(node.Literal), "%", "|")
+		r.out(w, []byte(s))
 	default:
 		panic("Unknown node type " + node.Type.String())
 	}
